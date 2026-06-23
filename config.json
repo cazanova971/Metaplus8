@@ -1,0 +1,38 @@
+{
+  "imageStyleMap": {
+    "cinematic": "cinematic film still, grounded visual storytelling, dramatic directional lighting, atmospheric depth, premium production design, controlled color grading, professional shot composition",
+    "stylized3d": "stylized 3D animated film look, expressive character shapes, polished materials, soft global illumination, appealing proportions, vibrant color harmony, family-animation quality, emotionally readable faces, cinematic depth",
+    "realisticcgi": "realistic CGI, physically based materials, believable surface texture, ray-traced reflections, accurate global illumination, high-detail environment, grounded proportions, premium VFX feature quality",
+    "toon2d": "stylized 2D cartoon illustration, clean appealing shapes, confident linework, readable silhouettes, expressive facial acting, simplified forms, rich color design, animation-ready composition",
+    "anime": "anime illustration, refined linework, expressive eyes, dynamic framing, cel-shaded rendering, vibrant palette, polished character art, cinematic anime background detail",
+    "realistic": "photorealistic photography, natural skin texture, authentic lens behavior, realistic lighting, DSLR-style depth of field, grounded composition, documentary-grade visual clarity",
+    "oilpainting": "classical oil painting, painterly brush texture, layered pigments, rich canvas depth, elegant chiaroscuro, artistic composition, museum-quality traditional rendering",
+    "comicbook": "comic book illustration, graphic novel energy, bold contour lines, stylized shading, punchy color blocking, dramatic perspective, inked detail, heroic panel composition",
+    "darkfantasy": "dark fantasy digital painting, moody atmosphere, gothic texture, dramatic shadow shaping, ominous color palette, mythic environment detail, haunting cinematic depth",
+    "watercolor": "watercolor illustration, translucent pigment layers, soft edge blending, delicate paper texture, airy atmosphere, poetic color transitions, handcrafted artistic finish",
+    "stickfigure": "minimal stick figure illustration, ultra-simple black line drawing, clean white background, playful hand-drawn clarity, intentionally reduced detail, readable pose storytelling",
+    "flatdesign": "flat design illustration, clean geometric construction, minimal shading, crisp vector edges, modern editorial layout, deliberate negative space, polished graphic clarity",
+    "neon": "neon cyberpunk illustration, luminous signage glow, electric color contrast, futuristic night atmosphere, glossy reflections, dense urban depth, high-energy visual drama",
+    "vintage": "vintage retro illustration, nostalgic color grading, aged print texture, muted warm palette, period-authentic visual mood, softened contrast, timeless poster-like finish",
+    "3drender": "stylized 3D render, polished animated surfaces, soft cinematic lighting, expressive forms, feature-animation quality, balanced color richness, clean family-friendly visual appeal",
+    "isometric": "isometric illustration, precise geometric layout, clean spatial separation, structured environment design, tidy color blocking, polished game-art readability"
+  },
+  "styleTestLabels": {
+    "cinematic": "سينمائي",
+    "stylized3d": "3D ستايلايز",
+    "realisticcgi": "CGI واقعي",
+    "toon2d": "كرتون 2D",
+    "anime": "أنمي",
+    "realistic": "فوتوغرافي",
+    "oilpainting": "زيتي",
+    "comicbook": "كومكس",
+    "darkfantasy": "فانتازيا مظلمة",
+    "watercolor": "ألوان مائية",
+    "stickfigure": "خطوط بسيطة",
+    "flatdesign": "فلات",
+    "neon": "نيون",
+    "vintage": "فينتدج",
+    "3drender": "3D رندر",
+    "isometric": "أيزومتريك"
+  }
+}
