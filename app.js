@@ -1703,6 +1703,78 @@
     setStage("audio-preview", "idle", "عرض مشغّل الصوت لكل مشهد.");
     setStage("audio-export", "idle", "تضمين ملفات WAV في حزمة التنزيل.");
   }
+
+  // ─── تقطيع القصة الطويلة (>500 كلمة): مخطط ثم تعبئة على أقسام ──────────────
+  function getStorySectionCount(w) {
+    w = Number(w) || 0;
+    if (w <= 800) return 2;
+    if (w <= 1200) return 3;
+    if (w <= 1600) return 4;
+    if (w <= 2000) return 5;
+    return Math.min(8, Math.ceil(w / 350));
+  }
+  function getPhaseOneOutlineInstruction(input, sectionCount) {
+    const availableGenres = getSelectOptionValues("storyGenreSelect");
+    const availableNarrators = getSelectOptionValues("narratorSelect");
+    const creative = input.creativeAuto
+      ? ("Auto-select the genre from this list only: " + availableGenres.join(", ") + ". Auto-select the narrator persona from this list only: " + availableNarrators.join(", ") + ". Write them into concept.genre and concept.narrator_persona.")
+      : ("Genre: " + input.genre + ". Narrator persona: " + input.narrator + ".");
+    return [
+      "You are a cinematic story architect. Build the foundation and a sequential OUTLINE for a story titled \"" + input.title + "\".",
+      creative,
+      input.hook ? ("Seed idea: " + input.hook + ".") : "",
+      "Write all text in " + input.language + " using the " + input.dialect + " register.",
+      "Target total length about " + input.wordCount + " words. Split the story into EXACTLY " + sectionCount + " sequential sections that together form one clear arc (hook, rising tension, climax/turn, resolution).",
+      "Each section must have a distinct purpose and must NOT repeat earlier sections. Distribute the scenes so each section covers roughly " + Math.round(input.wordCount / sectionCount) + " words.",
+      "Also build the concept and a story bible (main_character_profile, supporting_cast, world_rules, visual_identity, continuity_rules, narrative_goal) so later stages stay consistent.",
+      "Return valid JSON ONLY, no markdown, escape double quotes inside strings.",
+      'Return exactly: {"concept":{"title":"","language":"","era":"","genre":"","narrator_persona":"","logline":"","tone":"","world":"","core_conflict":"","writing_style":"","audience_selected":""},"bible":{"main_character_profile":"","supporting_cast":"","world_rules":"","visual_identity":"","continuity_rules":"","narrative_goal":""},"story_summary":"","sections":[{"id":1,"title":"","goal":"","what_happens":"","scene_count":4}]}'
+    ].filter(Boolean).join(" ");
+  }
+  function getPhaseOneSectionInstruction(input, outline, section, idx, total, prevTail, coveredList) {
+    const bible = outline.bible || {};
+    return [
+      "You are writing ONE section of a longer story titled \"" + input.title + "\". DO NOT rewrite other sections.",
+      "Write narration in " + input.language + " using the " + input.dialect + " register, kept CONSISTENT (no mixing formal/colloquial).",
+      "HUMAN VOICE: natural human narrator, no AI clichés, no over-dramatic trailer language, numbers and dates as spoken words.",
+      "Story bible (keep consistent): main_character=" + (bible.main_character_profile || "") + " | visual_identity=" + (bible.visual_identity || "") + " | continuity=" + (bible.continuity_rules || ""),
+      "Full outline of all sections: " + JSON.stringify((outline.sections || []).map(function (s) { return { id: s.id, title: s.title, goal: s.goal }; })),
+      "This is section " + (idx + 1) + " of " + total + ". Its plan: " + JSON.stringify(section),
+      idx === 0 ? "This is the opening: scene 1 must be a powerful hook." : ("Continue smoothly. Last scenes of the previous section (do NOT repeat them): " + prevTail),
+      "Already covered (do NOT repeat): " + (coveredList.join(" | ") || "nothing yet"),
+      "Produce ONLY this section's scenes. Each scene: 9-14 words of narration (±2 only when natural), advancing the story with no filler.",
+      "Return valid JSON ONLY, no markdown, escape double quotes inside strings.",
+      'Return exactly: {"scenes":[{"scene_number":1,"title":"","duration_seconds":5,"narration":""}]}'
+    ].join(" ");
+  }
+  async function generateChunkedStory(input, status) {
+    const sectionCount = getStorySectionCount(input.wordCount);
+    if (status) status.textContent = "تقطيع طويل: تجهيز المخطط (" + sectionCount + " أقسام)...";
+    const outline = safeParseJson(await generateTextWithGemini(getPhaseOneOutlineInstruction(input, sectionCount), "heavy"));
+    const sections = Array.isArray(outline.sections) && outline.sections.length ? outline.sections : [{ id: 1, title: "", goal: "", what_happens: "", scene_count: 6 }];
+    const allScenes = [];
+    const covered = [];
+    let prevTail = "";
+    for (let i = 0; i < sections.length; i++) {
+      throwIfStopRequested();
+      if (status) status.textContent = "تقطيع طويل: كتابة القسم " + (i + 1) + " / " + sections.length + "...";
+      const secParsed = safeParseJson(await generateTextWithGemini(
+        getPhaseOneSectionInstruction(input, outline, sections[i], i, sections.length, prevTail, covered), "heavy"));
+      const secScenes = Array.isArray(secParsed.scenes) ? secParsed.scenes : [];
+      secScenes.forEach(function (sc) { allScenes.push(sc); });
+      const tail = secScenes.slice(-2).map(function (s) { return s.narration || ""; }).join(" / ");
+      prevTail = tail;
+      covered.push((sections[i].title || ("section " + (i + 1))) + ": " + (sections[i].goal || ""));
+    }
+    allScenes.forEach(function (sc, idx) { sc.scene_number = idx + 1; });
+    const fullStory = allScenes.map(function (s) { return s.narration || ""; }).filter(Boolean).join(" ");
+    return {
+      concept: outline.concept || {},
+      bible: outline.bible || {},
+      story: { story_summary: outline.story_summary || "", full_story: fullStory },
+      scenes: allScenes
+    };
+  }
   async function runStoryPipeline(options = {}) {
     const input = getProjectInput();
     const status = document.getElementById("pipelineStatus");
@@ -1726,10 +1798,15 @@
       setStage("bible", "loading", "Gemini يبني الـ Story Bible...");
       setStage("story", "loading", input.useOwnStory ? "Gemini يجهّز نصك..." : "Gemini يكتب القصة الكاملة...");
       setStage("scenes", "loading", "Gemini يقسم المشاهد...");
-      const phaseOneInstruction = input.useOwnStory
-        ? getPhaseOneOwnStoryInstruction(input)
-        : getPhaseOneInstruction(input);
-      const parsed = safeParseJson(await generateTextWithGemini(phaseOneInstruction, "heavy"));
+      let parsed;
+      if (!input.useOwnStory && input.wordCount > 500) {
+        parsed = await generateChunkedStory(input, status);
+      } else {
+        const phaseOneInstruction = input.useOwnStory
+          ? getPhaseOneOwnStoryInstruction(input)
+          : getPhaseOneInstruction(input);
+        parsed = safeParseJson(await generateTextWithGemini(phaseOneInstruction, "heavy"));
+      }
       const concept = parsed.concept || {};
       const bible = parsed.bible || {};
       const story = parsed.story || {};
